@@ -41,29 +41,37 @@ public class PushbotCode extends OpMode {
     DcMotor leftDrive;
     DcMotor rightDrive;
     DcMotor armMotor;
-    Servo leftHand;
-    Servo rightHand;
+    Servo leftClaw;
+    Servo rightClaw;
 
     double driveSpeed = 1.0;
 
-    public static final double HAND_OPEN = 1.0;
+    public static final double HAND_OPEN = -1.0;
     public static final double HAND_CLOSED = 0.2;
+
+    // Left claw servo is mounted opposite the right one, so its
+    // open/closed positions are mirrored around the 0.5 midpoint.
+    public static final double LEFT_HAND_OPEN = -1.0 - HAND_OPEN;     // 0.0
+    public static final double LEFT_HAND_CLOSED = 1.0 - HAND_CLOSED; // 0.8
+
+    public static final double ARM_MANUAL_POWER = 0.7;
+    public static final double ARM_GRAVITY_POWER = 0.1;
 
     @Override
     public void init() {
 
         driver = new GamepadEx(gamepad1);
 
-        leftDrive = hardwareMap.get(DcMotor.class, "left_drive");
-        rightDrive = hardwareMap.get(DcMotor.class, "right_drive");
-        armMotor = hardwareMap.get(DcMotor.class, "arm_motor");
-        leftHand = hardwareMap.get(Servo.class, "left_hand");
-        rightHand = hardwareMap.get(Servo.class, "right_hand");
+        leftDrive = hardwareMap.get(DcMotor.class, "leftDrive");
+        rightDrive = hardwareMap.get(DcMotor.class, "rightDrive");
+        armMotor = hardwareMap.get(DcMotor.class, "armMotor");
+        leftClaw = hardwareMap.get(Servo.class, "leftClaw");
+        rightClaw = hardwareMap.get(Servo.class, "rightClaw");
 
-        rightDrive.setDirection(DcMotorSimple.Direction.REVERSE);
+        leftDrive.setDirection(DcMotorSimple.Direction.REVERSE);
 
-        leftHand.setPosition(HAND_CLOSED);
-        rightHand.setPosition(HAND_CLOSED);
+        leftClaw.setPosition(LEFT_HAND_CLOSED);
+        rightClaw.setPosition(HAND_CLOSED);
 
         telemetry.addData("Status", "Initialized");
         telemetry.update();
@@ -89,28 +97,28 @@ public class PushbotCode extends OpMode {
         double forward = -driver.getLeftY();
         double turn = driver.getRightX();
 
-        double leftPower = Range.clip(forward + turn, -1.0, 1.0) * driveSpeed;
-        double rightPower = Range.clip(forward - turn, -1.0, 1.0) * driveSpeed;
+        double leftPower = Range.clip(forward - turn, -1.0, 1.0) * driveSpeed;
+        double rightPower = Range.clip(forward + turn, -1.0, 1.0) * driveSpeed;
 
         leftDrive.setPower(leftPower);
-        rightDrive.setPower(rightPower);
+        rightDrive.setPower(rightPower * 0.4);
 
         // Arm
         if (driver.getButton(GamepadKeys.Button.RIGHT_BUMPER)) {
-            armMotor.setPower(1.0);
+            armMotor.setPower(ARM_MANUAL_POWER + ARM_GRAVITY_POWER);
         } else if (driver.getButton(GamepadKeys.Button.LEFT_BUMPER)) {
-            armMotor.setPower(-1.0);
+            armMotor.setPower(-ARM_MANUAL_POWER + ARM_GRAVITY_POWER);
         } else {
-            armMotor.setPower(0.0);
+            armMotor.setPower(ARM_GRAVITY_POWER);
         }
 
         // Hand / Gripper
         if (driver.wasJustPressed(GamepadKeys.Button.A)) {
-            leftHand.setPosition(HAND_OPEN);
-            rightHand.setPosition(HAND_OPEN);
+            leftClaw.setPosition(LEFT_HAND_OPEN);
+            rightClaw.setPosition(HAND_OPEN);
         } else if (driver.wasJustPressed(GamepadKeys.Button.B)) {
-            leftHand.setPosition(HAND_CLOSED);
-            rightHand.setPosition(HAND_CLOSED);
+            leftClaw.setPosition(LEFT_HAND_CLOSED);
+            rightClaw.setPosition(HAND_CLOSED);
         }
 
         // Displays important information for driver
